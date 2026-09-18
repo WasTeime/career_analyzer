@@ -5,17 +5,16 @@
   "functions": {
     "api/index.py": {
       "maxDuration": 60,
-      "memory": 1024,
       "includeFiles": "**"
     }
   },
   "rewrites": [
-    { "source": "/api/config", "destination": "/api/index?route=config" },
-    { "source": "/api/stats", "destination": "/api/index?route=stats" },
-    { "source": "/api/examples/:id", "destination": "/api/index?route=example&id=:id" },
-    { "source": "/api/clarify", "destination": "/api/index?route=clarify" },
-    { "source": "/api/agent", "destination": "/api/index?route=agent" },
-    { "source": "/api/finish", "destination": "/api/index?route=finish" }
+    { "source": "/api/config", "destination": "/api?route=config" },
+    { "source": "/api/stats", "destination": "/api?route=stats" },
+    { "source": "/api/examples/:id", "destination": "/api?route=example&id=:id" },
+    { "source": "/api/clarify", "destination": "/api?route=clarify" },
+    { "source": "/api/agent", "destination": "/api?route=agent" },
+    { "source": "/api/finish", "destination": "/api?route=finish" }
   ],
   "headers": [
     {

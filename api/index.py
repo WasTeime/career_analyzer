@@ -11,6 +11,10 @@
 на каждом шаге. Логика шага — общая с локальным сервером (serve.run_single_agent),
 здесь только HTTP-обёртка, лимиты и защита от чужих запусков на наших ключах.
 
+Vercel опознаёт проект как python-приложение и отдаёт функции все пути, включая
+«/», поэтому страницу из web/static раздаёт тоже функция. Роут берётся и из
+?route= (так приходят rewrites), и из чистого пути вида /api/config.
+
 Переменные окружения (задаются в настройках проекта Vercel):
     OPENROUTER_MODELS, OPENROUTER_KEYS, GROQ_MODELS, GROQ_KEYS — как в .env
     DEMO_ALLOW_RUN=0   — выключить живые запуски, оставить только примеры
@@ -20,6 +24,7 @@
 """
 
 import json
+import mimetypes
 import os
 import shutil
 import sys
@@ -47,6 +52,16 @@ from serve import (  # noqa: E402
 
 REPO_STATS = ROOT / "stats.json"
 TMP_STATS = Path("/tmp/stats.json")
+STATIC = ROOT / "web" / "static"
+
+# Чистые пути — на случай, когда запрос доходит до функции без rewrite.
+API_ROUTES = {
+    "/api/config": "config",
+    "/api/stats": "stats",
+    "/api/clarify": "clarify",
+    "/api/agent": "agent",
+    "/api/finish": "finish",
+}
 
 MAX_BODY_BYTES = 512 * 1024
 AGENTS_PER_RUN = len(AGENTS_META) + 1  # агенты + уточнение роли
@@ -129,11 +144,40 @@ class handler(BaseHTTPRequestHandler):
     def _error(self, status: int, message: str) -> None:
         self._json({"error": message}, status)
 
+    def _static(self) -> None:
+        base = STATIC.resolve()
+        rel = urlparse(self.path).path.lstrip("/") or "index.html"
+        target = (base / rel).resolve()
+        if base not in target.parents or not target.is_file():
+            return self._error(404, "Файл не найден")
+        ctype = mimetypes.guess_type(target.name)[0] or "application/octet-stream"
+        if ctype.startswith("text/") or ctype in ("application/javascript", "application/json"):
+            ctype += "; charset=utf-8"
+        body = target.read_bytes()
+        self.send_response(200)
+        self.send_header("Content-Type", ctype)
+        self.send_header("Content-Length", str(len(body)))
+        self.send_header("Cache-Control", "no-store")
+        self.end_headers()
+        self.wfile.write(body)
+
     def _query(self) -> dict:
         return parse_qs(urlparse(self.path).query)
 
     def _route(self) -> str:
-        return (self._query().get("route") or [""])[0]
+        explicit = (self._query().get("route") or [""])[0]
+        if explicit:
+            return explicit
+        path = urlparse(self.path).path
+        if path in API_ROUTES:
+            return API_ROUTES[path]
+        if path.startswith("/api/examples/"):
+            return "example"
+        return ""
+
+    def _example_id(self) -> str:
+        from_query = (self._query().get("id") or [""])[0]
+        return from_query or urlparse(self.path).path.rsplit("/", 1)[-1]
 
     def _body(self) -> dict:
         length = int(self.headers.get("Content-Length") or 0)
@@ -176,9 +220,11 @@ class handler(BaseHTTPRequestHandler):
             return self._json(load_stats(str(REPO_STATS)))
 
         if route == "example":
-            example_id = (self._query().get("id") or [""])[0]
-            data = load_example(example_id)
+            data = load_example(self._example_id())
             return self._json(data) if data else self._error(404, "Пример не найден")
+
+        if not urlparse(self.path).path.startswith("/api"):
+            return self._static()
 
         return self._error(404, "Не найдено")
 
