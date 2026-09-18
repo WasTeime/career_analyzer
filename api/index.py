@@ -73,10 +73,10 @@ _calls: dict[str, list[float]] = {}
 
 
 def env_flag(name: str, default: bool = True) -> bool:
-    raw = os.getenv(name)
-    if raw is None:
+    raw = (os.getenv(name) or "").strip()
+    if not raw:  # пустая переменная — та же «не задана»
         return default
-    return raw.strip().lower() not in ("0", "false", "no", "off", "")
+    return raw.lower() not in ("0", "false", "no", "off")
 
 
 def env_int(name: str, default: int) -> int:

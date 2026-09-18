@@ -23,6 +23,19 @@ PROVIDERS = [
 ]
 
 
+def _env_num(name: str, default, cast):
+    """Число из окружения. Пустая переменная считается незаданной: в панели
+    Vercel её легко создать без значения, а float("") падает."""
+    raw = (os.getenv(name) or "").strip()
+    if not raw:
+        return default
+    try:
+        return cast(raw)
+    except ValueError:
+        logger.warning("%s=%r — не число, беру %s", name, raw, default)
+        return default
+
+
 def _build_fallback_chain() -> list[dict]:
     """Строит цепочку: провайдер → модель (лучшая→худшая) → ключ (1→2)."""
     chain = []
@@ -49,9 +62,9 @@ def _build_fallback_chain() -> list[dict]:
 class LLMClient:
     def __init__(self, log_prompts: bool = False):
         self.log_prompts = log_prompts
-        self.temperature = float(os.getenv("TEMPERATURE", "0.3"))
-        self.max_tokens = int(os.getenv("MAX_TOKENS", "4096"))
-        self.max_retries = int(os.getenv("MAX_RETRIES", "3"))
+        self.temperature = _env_num("TEMPERATURE", 0.3, float)
+        self.max_tokens = _env_num("MAX_TOKENS", 4096, int)
+        self.max_retries = _env_num("MAX_RETRIES", 3, int)
 
         # Накопленная статистика токенов за всё время жизни клиента
         self.usage_stats: list[dict] = []
