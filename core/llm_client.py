@@ -36,6 +36,16 @@ def _env_num(name: str, default, cast):
         return default
 
 
+def _providers_hint() -> str:
+    """Какие переменные видит процесс — только имена, без значений."""
+    seen = []
+    for provider in PROVIDERS:
+        for env_name in (provider["models_env"], provider["keys_env"]):
+            filled = bool((os.getenv(env_name) or "").strip())
+            seen.append(f"{env_name} — {'задано' if filled else 'пусто'}")
+    return ", ".join(seen)
+
+
 def _build_fallback_chain() -> list[dict]:
     """Строит цепочку: провайдер → модель (лучшая→худшая) → ключ (1→2)."""
     chain = []
@@ -71,7 +81,11 @@ class LLMClient:
 
         chain = _build_fallback_chain()
         if not chain:
-            raise ValueError("Нет провайдеров. Добавь GROQ_MODELS + GROQ_KEYS в .env")
+            raise ValueError(
+                "Нет ни одной пары «модели + ключи»: нужны GROQ_MODELS + GROQ_KEYS "
+                "или OPENROUTER_MODELS + OPENROUTER_KEYS — локально в .env, на "
+                f"Vercel в переменных окружения проекта. Сейчас: {_providers_hint()}"
+            )
 
         self.clients = []
         for item in chain:

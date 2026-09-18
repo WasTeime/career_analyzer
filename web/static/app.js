@@ -5,17 +5,9 @@
 const state = {
   config: null,
   agents: [],
-  runId: null,
-  since: 0,
-  timer: null,
-  ticker: null,
-  startedAt: 0,
   report: null,
   markdown: "",
-  skipClarify: false,
 };
-
-const PRESETS = ["Backend Python Developer", "ML Engineer", "iOS Developer (Swift)", "Data Engineer"];
 
 const LEVELS = {
   "critical": { text: "необходимый", cls: "red", order: 0 },
@@ -87,16 +79,6 @@ function safeUrl(url) {
   return /^https?:\/\//i.test(url.trim()) ? url.trim() : null;
 }
 
-// Публичное демо можно закрыть токеном (DEMO_TOKEN на Vercel) — тогда ссылка
-// раздаётся в виде https://<домен>/?token=...
-const DEMO_TOKEN = new URLSearchParams(location.search).get("token") || "";
-
-async function post(path, body) {
-  const headers = { "Content-Type": "application/json" };
-  if (DEMO_TOKEN) headers["X-Demo-Token"] = DEMO_TOKEN;
-  return api(path, { method: "POST", headers, body: JSON.stringify(body) });
-}
-
 async function api(path, options) {
   const res = await fetch(path, options);
   let data = null;
@@ -121,33 +103,12 @@ function download(name, text, type) {
 // ─── инициализация ───────────────────────────────────────────────────────────
 
 async function init() {
-  $("role-chips").innerHTML = PRESETS.map((p) => `<button class="chip" data-preset="${esc(p)}">${esc(p)}</button>`).join("");
-  $("role-chips").addEventListener("click", (e) => {
-    const btn = e.target.closest("[data-preset]");
-    if (!btn) return;
-    $("role").value = btn.dataset.preset;
-    state.skipClarify = true;
-    hide($("suggest-box"));
-  });
-
-  $("run-btn").addEventListener("click", startRun);
-  $("role").addEventListener("input", () => { state.skipClarify = false; });
-  $("role").addEventListener("keydown", (e) => { if (e.key === "Enter") startRun(); });
   $("tabs").addEventListener("click", onTabClick);
   $("report-panel").addEventListener("click", (e) => {
     const btn = e.target.closest("[data-goto]");
     if (!btn) return;
     selectTab(btn.dataset.goto);
     $("tabs").scrollIntoView({ behavior: "smooth", block: "start" });
-  });
-  ["role", "skill-level", "goal"].forEach((id) => fillHintOnTab($(id)));
-  $("suggest-chips").addEventListener("click", (e) => {
-    const btn = e.target.closest("[data-suggest]");
-    if (!btn) return;
-    $("role").value = btn.dataset.suggest;
-    state.skipClarify = true;
-    hide($("suggest-box"));
-    startRun();
   });
 
   try {
@@ -157,51 +118,19 @@ async function init() {
     return;
   }
 
+  // подписи агентов нужны таблице «цена запуска» в отчёте
   state.agents = state.config.agents || [];
   renderExamples(state.config.examples || []);
-
-  const runEnabled = state.config.run_enabled !== undefined
-    ? state.config.run_enabled
-    : state.config.llm_ready;
-
-  if (!runEnabled) {
-    showNotice(
-      `${state.config.llm_error || "Живой запуск недоступен"} — открой готовый отчёт из examples/.`,
-      true
-    );
-    $("run-btn").disabled = true;
-    $("run-hint").textContent = "живой запуск выключен";
-  } else if (state.config.needs_token && !DEMO_TOKEN) {
-    showNotice("Демо закрыто токеном — нужна ссылка вида ?token=... Готовые отчёты доступны без токена.", true);
-    $("run-btn").disabled = true;
-    $("run-hint").textContent = "нужен токен в ссылке";
-  }
-
   loadStats();
   observeReveals();
 }
 
-/** Tab в пустом поле подставляет пример из placeholder, а не уводит фокус. */
-function fillHintOnTab(field) {
-  if (!field) return;
-  field.addEventListener("keydown", (e) => {
-    if (e.key !== "Tab" || e.shiftKey || e.ctrlKey || e.altKey || e.metaKey) return;
-    const hint = field.placeholder || "";
-    if (!hint || field.value.trim() !== "") return;
-    e.preventDefault();
-    field.value = hint;
-    field.setSelectionRange(hint.length, hint.length);
-    if (field.id === "role") state.skipClarify = PRESETS.includes(hint);
-  });
-}
-
 function showNotice(text, isError) {
-  const box = $("llm-notice");
+  const box = $("notice");
   box.textContent = text;
   box.className = `notice${isError ? " error" : ""}`;
 }
 
-function hide(node) { node.classList.add("hidden"); }
 function show(node) { node.classList.remove("hidden"); }
 
 function observeReveals() {
@@ -241,7 +170,6 @@ function renderExamples(items) {
     btn.disabled = true;
     try {
       const data = await api(`/api/examples/${encodeURIComponent(btn.dataset.example)}`);
-      hide($("pipeline-panel"));
       renderReport(data.report, data.markdown, { source: `Готовый отчёт · ${btn.dataset.example}` });
     } catch (err) {
       showNotice(`Не удалось открыть пример: ${err.message}`, true);
@@ -251,228 +179,12 @@ function renderExamples(items) {
   });
 }
 
-// ─── запуск pipeline ─────────────────────────────────────────────────────────
-
-async function startRun() {
-  if ($("run-btn").disabled) return;
-  const role = $("role").value.trim();
-  if (!role) {
-    $("run-status").textContent = "укажи специальность";
-    $("role").focus();
-    return;
-  }
-
-  $("run-btn").disabled = true;
-  hide($("suggest-box"));
-  hide($("report-panel"));
-  hide($("pipeline-error"));
-
-  try {
-    if (!state.skipClarify) {
-      $("run-status").innerHTML = `<span class="spinner"></span> проверяю роль`;
-      const clarified = await post("/api/clarify", { role });
-      if (clarified.suggestions && clarified.suggestions.length) {
-        $("suggest-chips").innerHTML = clarified.suggestions
-          .map((s) => `<button class="chip" data-suggest="${esc(s)}">${esc(s)}</button>`).join("") +
-          `<button class="chip" data-suggest="${esc(role)}">Оставить «${esc(role)}»</button>`;
-        show($("suggest-box"));
-        $("run-status").textContent = "";
-        $("run-btn").disabled = false;
-        return;
-      }
-    }
-
-    $("run-status").innerHTML = `<span class="spinner"></span> запускаю агентов`;
-
-    // На Vercel нет долгоживущего процесса и полный прогон не влезает в лимит
-    // функции, поэтому агенты вызываются по одному, а контекст живёт здесь.
-    if (state.config.mode === "serverless") return runStepwise(role);
-
-    const started = await post("/api/run", {
-      role,
-      skill_level: $("skill-level").value.trim(),
-      goal: $("goal").value.trim(),
-    });
-
-    state.runId = started.run_id;
-    state.since = 0;
-    state.startedAt = Date.now();
-    prepPipeline(role);
-    state.timer = setInterval(poll, 700);
-    state.ticker = setInterval(tick, 200);
-    poll();
-  } catch (e) {
-    $("run-status").textContent = "";
-    $("run-btn").disabled = false;
-    showNotice(e.message, true);
-  }
-}
-
-/** Пошаговый прогон: один HTTP-запрос на агента, контекст накапливается здесь. */
-async function runStepwise(role) {
-  const context = {
-    role,
-    generated_at: new Date().toISOString(),
-    skill_level: $("skill-level").value.trim(),
-    goal: $("goal").value.trim(),
-    _agent_timings: {},
-    _agent_tokens: {},
-  };
-  const usageTotal = { input_tokens: 0, output_tokens: 0, total_tokens: 0, calls: 0 };
-  const elapsed = () => Number(((Date.now() - state.startedAt) / 1000).toFixed(2));
-
-  state.startedAt = Date.now();
-  state.liveTokens = 0;
-  prepPipeline(role);
-  state.ticker = setInterval(tick, 200);
-
-  try {
-    for (const agent of state.agents) {
-      setAgentRunning(agent.name);
-      context._pipeline_elapsed = elapsed();
-      const step = await post("/api/agent", { name: agent.name, context, usage_total: usageTotal });
-      Object.assign(context, step.result);
-      context._agent_timings[agent.name] = step.elapsed_sec;
-      context._agent_tokens[agent.name] = step.tokens;
-      Object.keys(usageTotal).forEach((key) => {
-        usageTotal[key] += (step.usage && step.usage[key]) || 0;
-      });
-      setAgentDone(agent.name, step.elapsed_sec, step.tokens);
-    }
-
-    context._pipeline_elapsed = elapsed();
-    const finished = await post("/api/finish", { context });
-
-    stopPolling();
-    $("run-status").textContent = "готово";
-    $("run-btn").disabled = false;
-    $("pipeline-meta").textContent = `${secs(context._pipeline_elapsed)} · ${num(usageTotal.total_tokens)} токенов`;
-    renderReport(context, finished.markdown, { source: "Живой запуск" });
-    loadStats();
-  } catch (e) {
-    stopPolling();
-    $("run-status").textContent = "";
-    $("run-btn").disabled = false;
-    const running = state.agents.find((a) => {
-      const row = agentRow(a.name);
-      return row && row.dataset.state === "running";
-    });
-    if (running) setAgentError(running.name);
-    const box = $("pipeline-error");
-    box.textContent = e.message;
-    show(box);
-  }
-}
-
-function prepPipeline(role) {
-  $("pipeline-role").textContent = role;
-  $("pipeline-meta").textContent = "0.0 с · 0 токенов";
-  $("progress").style.width = "0%";
-  $("agent-list").innerHTML = state.agents.map((agent, i) => `
-    <div class="agent-row" data-agent="${esc(agent.name)}" data-state="pending" style="--index:${i}">
-      <div class="idx">${String(i + 1).padStart(2, "0")}</div>
-      <div>
-        <div class="name">${esc(agent.label)}</div>
-        <div class="about">${esc(agent.about)}</div>
-        <div class="output">→ ${esc(agent.output)}</div>
-      </div>
-      <div class="metrics">
-        ${badge("ожидает", "neutral")}
-        <span class="mono metric"></span>
-      </div>
-    </div>`).join("");
-  show($("pipeline-panel"));
-  $("pipeline-panel").scrollIntoView({ behavior: "smooth", block: "start" });
-}
-
-function tick() {
-  const elapsed = (Date.now() - state.startedAt) / 1000;
-  const tokens = state.liveTokens || 0;
-  $("pipeline-meta").textContent = `${elapsed.toFixed(1)} с · ${num(tokens)} токенов`;
-}
-
-async function poll() {
-  if (!state.runId) return;
-  let snap;
-  try {
-    snap = await api(`/api/run/${state.runId}?since=${state.since}`);
-  } catch (e) {
-    return; // сеть моргнула — попробуем на следующем тике
-  }
-
-  state.since = snap.event_count;
-  (snap.events || []).forEach(applyEvent);
-
-  if (snap.status === "done") {
-    stopPolling();
-    $("run-status").textContent = "готово";
-    $("run-btn").disabled = false;
-    $("pipeline-meta").textContent = `${secs(snap.report._pipeline_elapsed)} · ${num(
-      (snap.report.run_stats && snap.report.run_stats.tokens && snap.report.run_stats.tokens.total_tokens) || state.liveTokens
-    )} токенов`;
-    renderReport(snap.report, snap.markdown, { source: "Живой запуск" });
-    loadStats();
-  } else if (snap.status === "error") {
-    stopPolling();
-    $("run-status").textContent = "";
-    $("run-btn").disabled = false;
-    const box = $("pipeline-error");
-    box.textContent = snap.error || "Запуск завершился с ошибкой";
-    show(box);
-  }
-}
-
-function stopPolling() {
-  clearInterval(state.timer);
-  clearInterval(state.ticker);
-  state.timer = null;
-  state.ticker = null;
-}
-
-function agentRow(name) {
-  return name ? $("agent-list").querySelector(`[data-agent="${name}"]`) : null;
-}
-
-function setAgentRunning(name) {
-  const row = agentRow(name);
-  if (!row) return;
-  row.dataset.state = "running";
-  row.querySelector(".badge").outerHTML = `<span class="badge blue pulse">в работе</span>`;
-}
-
-function setAgentDone(name, elapsedSec, tokens) {
-  const row = agentRow(name);
-  if (!row) return;
-  row.dataset.state = "done";
-  row.querySelector(".badge").outerHTML = badge("готово", "green");
-  row.querySelector(".metric").textContent = `${secs(elapsedSec)} · ${num(tokens)} токенов`;
-  state.liveTokens = (state.liveTokens || 0) + (tokens || 0);
-  const done = $("agent-list").querySelectorAll('[data-state="done"]').length;
-  $("progress").style.width = `${(done / state.agents.length) * 100}%`;
-}
-
-function setAgentError(name) {
-  const row = agentRow(name);
-  if (!row) return;
-  row.dataset.state = "error";
-  row.querySelector(".badge").outerHTML = badge("ошибка", "red");
-}
-
-function applyEvent(evt) {
-  const payload = evt.payload || {};
-
-  if (evt.event === "agent_start") setAgentRunning(payload.name);
-  if (evt.event === "agent_done") setAgentDone(payload.name, payload.elapsed_sec, payload.tokens);
-  if (evt.event === "agent_error" || evt.event === "pipeline_error") setAgentError(payload.name);
-}
-
 // ─── отчёт ───────────────────────────────────────────────────────────────────
 
 function renderReport(report, markdown, meta) {
   if (!report) return;
   state.report = report;
   state.markdown = markdown || "";
-  state.liveTokens = 0;
 
   const critic = report.critic_result || {};
   $("report-eyebrow").textContent = (meta && meta.source) || "Карьерный отчёт";

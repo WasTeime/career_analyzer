@@ -129,46 +129,7 @@ a:hover { border-bottom-color: var(--muted); }
 
 .panel-head .mono { white-space: nowrap; }
 
-.split {
-  display: grid;
-  grid-template-columns: 1.35fr 1fr;
-  gap: 24px;
-  align-items: start;
-}
-
-/* ─── форма ───────────────────────────────────────────────────────────────── */
-
-.field { display: grid; gap: 8px; margin-bottom: 20px; }
-
-.field label {
-  font-family: var(--mono);
-  font-size: 12px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-
-input[type="text"],
-textarea {
-  width: 100%;
-  font-family: var(--sans);
-  font-size: 17px;
-  color: var(--ink-strong);
-  background: var(--surface-alt);
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  padding: 12px 14px;
-  transition: border-color 160ms var(--ease), background 160ms var(--ease);
-}
-
-input[type="text"]:focus,
-textarea:focus {
-  outline: none;
-  background: var(--surface);
-  border-color: var(--muted-soft);
-}
-
-textarea { min-height: 76px; resize: vertical; line-height: 1.5; }
+/* ─── чипы, кнопки, плашки ────────────────────────────────────────────────── */
 
 .chips { display: flex; flex-wrap: wrap; gap: 8px; }
 
@@ -189,59 +150,10 @@ textarea { min-height: 76px; resize: vertical; line-height: 1.5; }
 
 .chip:hover { color: var(--ink-strong); border-color: var(--muted-soft); }
 
-details.context {
-  border-top: 1px solid var(--line);
-  border-bottom: 1px solid var(--line);
-  padding: 14px 0;
-  margin-bottom: 24px;
-}
-
-details.context summary {
-  cursor: pointer;
-  list-style: none;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-family: var(--mono);
-  font-size: 12.5px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-
-details.context summary::-webkit-details-marker { display: none; }
-
-details.context summary::before {
-  content: "+";
-  font-size: 14px;
-  line-height: 1;
-  color: var(--ink-strong);
-}
-
-details.context[open] summary::before { content: "–"; }
-
-details.context .fields { padding-top: 20px; }
-
-.actions { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
-
 button {
   font-family: var(--sans);
   cursor: pointer;
 }
-
-.btn-primary {
-  background: var(--ink-strong);
-  color: #fff;
-  border: 1px solid var(--ink-strong);
-  border-radius: 6px;
-  padding: 13px 24px;
-  font-size: 17px;
-  transition: background 160ms var(--ease), transform 120ms var(--ease);
-}
-
-.btn-primary:hover:not(:disabled) { background: #333333; }
-.btn-primary:active:not(:disabled) { transform: scale(0.98); }
-.btn-primary:disabled { background: var(--muted-soft); border-color: var(--muted-soft); cursor: default; }
 
 .btn-ghost {
   background: var(--surface);
@@ -272,7 +184,7 @@ button {
 
 /* ─── готовые примеры ─────────────────────────────────────────────────────── */
 
-.examples { display: grid; gap: 10px; }
+.examples { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
 
 .example {
   display: grid;
@@ -293,48 +205,7 @@ button {
 
 .example strong { font-weight: 500; color: var(--ink-strong); font-size: 16px; }
 
-/* ─── пайплайн ────────────────────────────────────────────────────────────── */
-
-.progress-track {
-  height: 2px;
-  background: var(--line);
-  border-radius: 2px;
-  overflow: hidden;
-  margin-bottom: 4px;
-}
-
-.progress-fill {
-  height: 100%;
-  width: 0;
-  background: var(--ink-strong);
-  transition: width 400ms var(--ease);
-}
-
-.agent-list { display: grid; }
-
-.agent-row {
-  display: grid;
-  grid-template-columns: 26px 1fr auto;
-  gap: 16px;
-  align-items: start;
-  padding: 18px 0;
-  border-bottom: 1px solid var(--line);
-  opacity: 0;
-  transform: translateY(8px);
-  animation: rise 520ms var(--ease) forwards;
-  animation-delay: calc(var(--index, 0) * 70ms);
-}
-
-.agent-row:last-child { border-bottom: none; }
-
-.agent-row .idx { font-family: var(--mono); font-size: 13px; color: var(--muted-soft); padding-top: 4px; }
-.agent-row .name { color: var(--ink-strong); font-weight: 500; font-size: 18px; }
-.agent-row .about { font-size: 15px; color: var(--muted); }
-.agent-row .output { font-family: var(--mono); font-size: 12.5px; color: var(--muted-soft); }
-.agent-row .metrics { text-align: right; display: grid; gap: 4px; justify-items: end; }
-
-.agent-row[data-state="running"] .name { position: relative; }
-.agent-row[data-state="pending"] { opacity: 0.55; }
+/* ─── бейджи ──────────────────────────────────────────────────────────────── */
 
 .badge {
   display: inline-block;
@@ -375,18 +246,6 @@ button {
   content: "·";
   margin-right: 14px;
   color: var(--muted-soft);
-}
-
-.pulse::after {
-  content: "";
-  display: inline-block;
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: currentColor;
-  margin-left: 7px;
-  vertical-align: middle;
-  animation: blink 1.4s ease-in-out infinite;
 }
 
 /* ─── отчёт ───────────────────────────────────────────────────────────────── */
@@ -700,17 +559,6 @@ pre.source {
 
 .hidden { display: none !important; }
 
-.spinner {
-  width: 13px;
-  height: 13px;
-  border: 1.5px solid var(--line);
-  border-top-color: var(--ink-strong);
-  border-radius: 50%;
-  animation: spin 800ms linear infinite;
-  display: inline-block;
-  vertical-align: -2px;
-}
-
 footer {
   border-top: 1px solid var(--line);
   margin-top: 48px;
@@ -729,22 +577,12 @@ footer {
   to { opacity: 1; transform: translateY(0); }
 }
 
-@keyframes blink {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.25; }
-}
-
-@keyframes spin { to { transform: rotate(360deg); } }
-
 @media (max-width: 860px) {
-  .split { grid-template-columns: 1fr; }
   .report-head { grid-template-columns: 1fr; }
   .score { text-align: left; justify-items: start; }
   .panel { padding: 24px 18px; }
   .page-head { padding: 56px 0 40px; }
   .wrap { padding: 0 14px 64px; }
-  .agent-row { grid-template-columns: 22px 1fr; }
-  .agent-row .metrics { grid-column: 2; justify-items: start; text-align: left; }
   table.data { min-width: 680px; }
   .kpi { border-right: none; }
   /* длинные подписи (например, примечание к статистике) должны переноситься */
@@ -754,5 +592,4 @@ footer {
 @media (prefers-reduced-motion: reduce) {
   * { animation: none !important; transition: none !important; }
   .reveal { opacity: 1; transform: none; }
-  .agent-row { opacity: 1; transform: none; }
 }
