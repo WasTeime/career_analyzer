@@ -11,3 +11,7 @@ build/
 .DS_Store
 venv/
 .venv/
+# отчёты веб-демо и CLI-запусков
+results/
+.ipynb_checkpoints/
+.vercel/

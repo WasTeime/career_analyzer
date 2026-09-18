@@ -1,0 +1,17 @@
+.venv
+venv
+.git
+.idea
+.pytest_cache
+__pycache__
+**/__pycache__
+*.pyc
+.ipynb_checkpoints
+analytics.ipynb
+results
+uv.lock
+Dockerfile
+docker-compose.yml
+.dockerignore
+.env
+.env.example

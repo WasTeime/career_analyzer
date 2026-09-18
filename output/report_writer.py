@@ -42,6 +42,14 @@ class ReportWriter:
         logger.info("JSON сохранён: %s", path)
         return path
 
+    def build_markdown(self, context: dict) -> str:
+        """Собирает report.md и возвращает текстом, ничего не записывая.
+
+        Нужно веб-демо на Vercel: там файловая система read-only, отчёт
+        отдаётся клиенту в ответе и скачивается браузером.
+        """
+        return self._build_markdown(context)
+
     def _save_markdown(self, context: dict) -> Path:
         path = self.output_dir / "report.md"
         md = self._build_markdown(context)

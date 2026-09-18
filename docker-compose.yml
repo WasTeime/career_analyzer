@@ -5,3 +5,14 @@ services:
     volumes:
       - ./results:/app/results
     command: --output /app/results
+
+  # Веб-демо: docker compose up career-analyser-web → http://localhost:8000
+  career-analyser-web:
+    build: .
+    env_file: .env
+    entrypoint: ["uv", "run", "serve.py", "--host", "0.0.0.0", "--port", "8000", "--no-browser", "--output", "/app/results/web"]
+    command: []
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./results:/app/results

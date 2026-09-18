@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Career Market Analyzer — демо</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="ambient" aria-hidden="true"></div>
+
+<div class="wrap">
+
+  <header class="page-head">
+    <p class="eyebrow">Career Market Analyzer</p>
+    <h1>Мультиагентный анализ<br>карьерного рынка IT</h1>
+    <p class="lede">Пять агентов последовательно строят карту навыков, зарплатную таблицу по грейдам на данных hh.ru, план обучения на 90 дней и проверяют готовый отчёт на согласованность.</p>
+  </header>
+
+  <main>
+    <section class="panel reveal" id="form-panel">
+      <div class="split">
+        <div>
+          <div class="panel-head">
+            <h2>Запустить анализ</h2>
+            <span class="mono" id="run-hint">~60 секунд, ~19k токенов</span>
+          </div>
+
+          <div id="llm-notice" class="notice hidden"></div>
+
+          <div class="field">
+            <label for="role">Специальность</label>
+            <input type="text" id="role" placeholder="Backend Python Developer" autocomplete="off">
+            <div class="chips" id="role-chips"></div>
+          </div>
+
+          <div id="suggest-box" class="hidden">
+            <div class="notice">Роль слишком общая — уточни специальность:</div>
+            <div class="chips" id="suggest-chips"></div>
+          </div>
+
+          <details class="context">
+            <summary>Добавить контекст — уровень и цель</summary>
+            <div class="fields">
+              <div class="field">
+                <label for="skill-level">Текущий уровень</label>
+                <textarea id="skill-level" placeholder="Знаю базовый Python (циклы, функции, списки), SQL не знаю"></textarea>
+              </div>
+              <div class="field">
+                <label for="goal">Цель</label>
+                <textarea id="goal" placeholder="Устроиться на первую работу джуном"></textarea>
+              </div>
+            </div>
+          </details>
+
+          <div class="actions">
+            <button class="btn-primary" id="run-btn">Запустить анализ</button>
+            <span class="mono" id="run-status"></span>
+          </div>
+        </div>
+
+        <div>
+          <div class="panel-head">
+            <h2>Готовые отчёты</h2>
+          </div>
+          <p class="mono" style="margin-bottom:16px">Реальные запуски системы — открываются мгновенно</p>
+          <div class="examples" id="examples"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel hidden" id="pipeline-panel">
+      <div class="panel-head">
+        <h2 id="pipeline-role">Pipeline</h2>
+        <span class="mono" id="pipeline-meta"></span>
+      </div>
+      <div class="progress-track"><div class="progress-fill" id="progress"></div></div>
+      <div class="agent-list" id="agent-list"></div>
+      <div id="pipeline-error" class="notice error hidden" style="margin:24px 0 0"></div>
+    </section>
+
+    <section class="panel hidden" id="report-panel">
+      <div class="report-head">
+        <div>
+          <p class="eyebrow" id="report-eyebrow">Карьерный отчёт</p>
+          <h2 id="report-role"></h2>
+          <div class="report-meta" id="report-meta"></div>
+        </div>
+        <div class="score">
+          <span class="value" id="report-score">—</span>
+          <span class="mono">quality score</span>
+          <span class="badge neutral" id="report-consistent"></span>
+        </div>
+      </div>
+
+      <div class="tabs" role="tablist" id="tabs">
+        <button class="tab" role="tab" data-tab="skills" aria-selected="true">Навыки</button>
+        <button class="tab" role="tab" data-tab="salary" aria-selected="false">Зарплаты</button>
+        <button class="tab" role="tab" data-tab="learning" aria-selected="false">План обучения</button>
+        <button class="tab" role="tab" data-tab="portfolio" aria-selected="false">Портфолио</button>
+        <button class="tab" role="tab" data-tab="quality" aria-selected="false">Оценка критика</button>
+        <button class="tab" role="tab" data-tab="source" aria-selected="false">Исходник</button>
+      </div>
+
+      <div class="tab-panel active" id="panel-skills"></div>
+      <div class="tab-panel" id="panel-salary"></div>
+      <div class="tab-panel" id="panel-learning"></div>
+      <div class="tab-panel" id="panel-portfolio"></div>
+      <div class="tab-panel" id="panel-quality"></div>
+      <div class="tab-panel" id="panel-source"></div>
+    </section>
+
+    <section class="panel reveal" id="stats-panel">
+      <div class="panel-head">
+        <h2>Статистика запусков</h2>
+      </div>
+      <div id="stats-body"></div>
+    </section>
+  </main>
+
+  <footer>
+    <span class="mono">Career Market Analyzer</span>
+  </footer>
+
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
