@@ -57,8 +57,8 @@ career-analyzer/
 | `pydantic`      | ≥2.0    | Валидация выходных данных агентов           |
 | `python-dotenv` | ≥1.0    | Загрузка `.env`                             |
 | `requests`      | ≥2.31   | Запросы к hh.ru API                         |
-| `jupyter`       | —       | Аналитический notebook (опционально)        |
-| `matplotlib`    | —       | Графики статистики (опционально)            |
+| `jupyter`       | —       | Аналитический notebook (группа `analytics`) |
+| `matplotlib`    | —       | Графики статистики (группа `analytics`)     |
 
 ## Архитектура
 
@@ -299,7 +299,9 @@ vercel --prod   # продакшен
 
 Из-за лимита 60 секунд на шаг самый долгий агент (`career_advisor`, в среднем 34 секунды) в редких случаях может не успеть — в истории из 46 запусков один раз он занял 57 секунд. Тогда страница покажет ошибку шага, а остальные агенты уже отработали.
 
-Runtime — Python 3.12 (по умолчанию у Vercel), зависимости ставятся из `requirements.txt` — там только то, что реально импортируется в рантайме.
+Runtime — Python 3.12 (берётся из `requires-python` в `pyproject.toml`). Зависимости сборщик ставит из `pyproject.toml`, а `requirements.txt` использует только как запасной вариант, поэтому в `[project].dependencies` лежит ровно то, что импортируется в рантайме: `openai`, `pydantic`, `python-dotenv`, `requests` — около 20 МБ на диске.
+
+`jupyter` и `matplotlib` нужны только для `analytics.ipynb` и вынесены в группу `analytics` (`uv sync --group analytics`): вместе с ними бандл функции разрастается до 1 ГБ, а лимит Vercel — 500 МБ. Ставить их в основные зависимости нельзя, деплой сломается.
 
 ---
 
@@ -369,7 +371,7 @@ uv run main.py --role "Backend Python Developer" --output ./results --verbose --
 
 ### Графики
 ```bash
-uv add jupyter matplotlib
+uv sync --group analytics
 uv run jupyter notebook analytics.ipynb
 ```
 

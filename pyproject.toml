@@ -4,14 +4,17 @@ version = "0.1.0"
 description = "Add your description here"
 requires-python = ">=3.11"
 dependencies = [
-    "groq>=1.1.1",
-    "jupyter>=1.1.1",
-    "matplotlib>=3.10.8",
     "openai>=2.30.0",
     "pydantic>=2.12.5",
     "python-dotenv>=1.2.2",
     "requests>=2.33.0",
 ]
 
+# Только для analytics.ipynb, пайплайну не нужны: uv sync --group analytics.
+# Сборщик Vercel ставит зависимости из этого файла, и вместе с jupyter бандл
+# функции вырастал до 1 ГБ против лимита в 500 МБ.
 [dependency-groups]
-dev = []
+analytics = [
+    "jupyter>=1.1.1",
+    "matplotlib>=3.10.8",
+]

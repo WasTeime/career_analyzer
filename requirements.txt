@@ -1,6 +1,6 @@
-# Зависимости для Vercel: их ставит сборщик python-функции.
-# Локально проект живёт на uv (pyproject.toml + uv.lock) — здесь только то,
-# что нужно веб-демо: jupyter/matplotlib из pyproject функции не требуются.
+# Зависимости рантайма для Vercel. Сборщик python-функции читает
+# pyproject.toml, если он есть, поэтому список обязан совпадать с
+# [project].dependencies — иначе в бандл уедет что-то лишнее.
 openai>=2.30.0
 pydantic>=2.12.5
 python-dotenv>=1.2.2
